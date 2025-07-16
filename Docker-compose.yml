@@ -19,7 +19,7 @@ services:
       dockerfile: Dockerfile
     container_name: mock-supporttool
     working_dir: /app
-    command: ["python", "mock_server/mocker_supporttool.py"]
+    command: ["python", "mock_server/mock_supporttool.py"]
     networks:
       supportnet:
         ipv4_address: 192.168.40.3
