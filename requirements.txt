@@ -1,0 +1,6 @@
+labgrid
+requests
+pytest
+attrs
+fastapi
+uvicorn

@@ -1,0 +1,33 @@
+services:
+  supporttool:
+    build: .
+    container_name: supporttool
+    environment:
+      - SUPPORTTOOL_PORT=60000
+    networks:
+      supportnet:
+        ipv4_address: 192.168.40.2
+    depends_on:
+      - mock-server
+    command: >
+      sh -c "sleep 5 &&
+             pytest tests"
+
+  mock-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mock-supporttool
+    working_dir: /app
+    command: ["python", "mock_server/mocker_supporttool.py"]
+    networks:
+      supportnet:
+        ipv4_address: 192.168.40.3
+    ports:
+      - "60001:60000"
+
+networks:
+  supportnet:
+    ipam:
+      config:
+        - subnet: 192.168.40.0/24
