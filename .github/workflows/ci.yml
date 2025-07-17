@@ -17,6 +17,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Run Tests in Docker
+      - name: Install Docker Compose
         run: |
-          docker-compose -f tests/docker-compose.yaml up --build --abort-on-container-exit --exit-code-from supporttool
+          curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose
+          ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+          docker-compose version
+
+      - name: Run tests in Docker
+        run: docker-compose -f tests/docker-compose.yaml up --build --abort-on-container-exit --exit-code-from supporttool
