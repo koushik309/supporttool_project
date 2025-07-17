@@ -1,6 +1,6 @@
 services:
   supporttool:
-    build: .
+    build: ..
     container_name: supporttool
     environment:
       - SUPPORTTOOL_PORT=60000
@@ -15,7 +15,7 @@ services:
 
   mock-server:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     container_name: mock-supporttool
     working_dir: /app
@@ -24,7 +24,7 @@ services:
       supportnet:
         ipv4_address: 192.168.40.3
     ports:
-      - "60001:60000"
+      - "60000:60000"
 
 networks:
   supportnet:

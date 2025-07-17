@@ -1,0 +1,4 @@
+test_environment: local
+api_base_url: http://127.0.0.1:60000
+timeout: 5
+verify_ssl: false
