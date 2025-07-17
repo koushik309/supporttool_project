@@ -19,10 +19,10 @@ jobs:
 
       - name: Install Docker Compose
         run: |
-          curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
-          chmod +x /usr/local/bin/docker-compose
-          ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-          docker-compose version
+          curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o docker-compose
+          chmod +x docker-compose
+          sudo mv docker-compose /usr/local/bin/docker-compose
+          /usr/local/bin/docker-compose version
 
       - name: Run tests in Docker
-        run: docker-compose -f tests/docker-compose.yaml up --build --abort-on-container-exit --exit-code-from supporttool
+        run: /usr/local/bin/docker-compose -f tests/docker-compose.yaml up --build --abort-on-container-exit --exit-code-from supporttool
