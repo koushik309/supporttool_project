@@ -1,9 +1,10 @@
 services:
   supporttool:
-    build: ..
+    build: ../..
     container_name: supporttool
     environment:
       - SUPPORTTOOL_PORT=60000
+      - PYTHONPATH=/app 
     networks:
       supportnet:
         ipv4_address: 192.168.40.2
@@ -11,11 +12,11 @@ services:
       - mock-server
     command: >
       sh -c "sleep 5 &&
-             pytest tests"
+             pytest examples/supporttool"
 
   mock-server:
     build:
-      context: ..
+      context: ../..
       dockerfile: Dockerfile
     container_name: mock-supporttool
     working_dir: /app

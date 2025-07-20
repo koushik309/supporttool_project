@@ -1,5 +1,5 @@
 import pytest
-from driver.supporttool_driver import SupportToolDriver
+from labgrid.driver.supporttool_driver import SupportToolDriver
 
 class DummySupt:
     port = 60000
@@ -19,3 +19,6 @@ def driver(monkeypatch):
 
 def test_api_running(driver):
     assert driver.check_rest_api_running() is True
+
+def test_supporttool_activated(driver):
+    assert driver.check_supporttool_activated() is True
