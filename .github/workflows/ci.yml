@@ -26,4 +26,4 @@ jobs:
           /usr/local/bin/docker-compose version
 
       - name: Run tests in Docker
-        run: /usr/local/bin/docker-compose -f examples/supporttool/docker-compose.yml up --build --abort-on-container-exit --exit-code-from supporttool
+        run: /usr/local/bin/docker-compose -f examples/supporttool/Docker-compose.yml up --build --abort-on-container-exit --exit-code-from supporttool
