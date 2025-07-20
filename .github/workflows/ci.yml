@@ -5,6 +5,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+  workflow_run:
 
 jobs:
   docker-test:
@@ -25,4 +27,4 @@ jobs:
           /usr/local/bin/docker-compose version
 
       - name: Run tests in Docker
-        run: /usr/local/bin/docker-compose -f tests/Docker-compose.yml up --build --abort-on-container-exit --exit-code-from supporttool
+        run: /usr/local/bin/docker-compose -f examples/supporttool/Docker-compose.yml up --build --abort-on-container-exit --exit-code-from supporttool
