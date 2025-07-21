@@ -5,20 +5,18 @@ import attr
 from labgrid.proxy import proxymanager
 from labgrid.target_factory import target_factory
 
-#urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# Optional: disable warnings for unverified HTTPS requests
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 @target_factory.reg_driver
 @attr.s(eq=False)
 class SupportToolDriver:
-    # Required for attr.s to generate __init__ with these parameters
     target = attr.ib()
     name = attr.ib(default=None)
 
-    # Static bindings
     bindings = {"supt": "SupportTool"}
 
-    # Instance vars
     _support_tool_url = attr.ib(default="", init=False)
     logger = attr.ib(factory=lambda: logging.getLogger("SupportToolDriver"), init=False)
 
@@ -40,41 +38,60 @@ class SupportToolDriver:
             else:
                 return True, "", response.text
         except Exception as exc:
-            return False, str(exc), N
-   def check_supporttool_activated(self):
-    """
-    First ensure the server is running.
-    Then check if the SupportTool is activated by:
-    1. Trying `/api/status` for a known activation response.
-    2. Falling back to `/swagger` and checking content.
-    """
-    try:
-        # Step 1: Check if server is running
-        if not self.check_rest_api_running():
-            self.logger.error("Cannot check activation: SupportTool API is not running.")
-            return False
+            return False, str(exc), None
 
-        # Step 2: Try /api/status for known activation response
-        status_url = f"{self._support_tool_url}/api/status"
-        okay, error_msg, content = self._rest_get(status_url, expected_result=False)
-        if okay and content and isinstance(content, dict) and content.get("status") == "active":
-            self.logger.info("SupportTool is activated (via /api/status).")
+    def check_rest_api_running(self):
+        """Check if the SupportTool server is reachable over HTTPS."""
+        try:
+            host, port = proxymanager.get_host_and_port(self.supt, default_port=self.supt.port)
+            self._support_tool_url = f"https://{host}:{port}"
+            okay, error_msg, content = self._rest_get(self._support_tool_url, expected_result=True)
+
+            if not okay or not content:
+                raise Exception(f"SupportToolDriver error: {error_msg}")
+            
+            self.logger.info(f"Support Tool API is running at {self._support_tool_url}")
             return True
 
-        # Step 3: Fallback to /swagger endpoint
-        swagger_url = f"{self._support_tool_url}/swagger"
-        okay, error_msg, content = self._rest_get(swagger_url, expected_result=False)
-        if okay and isinstance(content, str):
-            if "Swagger UI" in content or "<title>Swagger UI" in content:
-                self.logger.info("SupportTool is activated (via Swagger UI detection).")
+        except requests.RequestException as exc:
+            self.logger.error(f"Request error checking SupportTool API: {exc}")
+            return False
+        except Exception as exc:
+            self.logger.error(f"Unexpected error checking API: {exc}")
+            return False
+
+    def check_supporttool_activated(self):
+        """
+        Confirm the SupportTool server is running, then check if it's activated
+        via `/api/status` or fallback to detecting Swagger UI.
+        """
+        try:
+            # Step 1: Ensure the server is up
+            if not self.check_rest_api_running():
+                self.logger.error("Cannot verify activation — server not reachable.")
+                return False
+
+            # Step 2: Try /api/status for known activation state
+            status_url = f"{self._support_tool_url}/api/status"
+            okay, error_msg, content = self._rest_get(status_url, expected_result=False)
+            if okay and isinstance(content, dict) and content.get("status") == "active":
+                self.logger.info("SupportTool is activated (via /api/status).")
                 return True
-            else:
-                self.logger.warning("Swagger responded, but activation markers not found.")
-        elif not okay:
-            self.logger.warning(f"Swagger endpoint error: {error_msg}")
 
-        return False
+            # Step 3: Fallback to Swagger UI check
+            swagger_url = f"{self._support_tool_url}/swagger"
+            okay, error_msg, content = self._rest_get(swagger_url, expected_result=False)
+            if okay and isinstance(content, str):
+                if "Swagger UI" in content or "<title>Swagger UI" in content:
+                    self.logger.info("SupportTool is activated (via Swagger UI detection).")
+                    return True
+                else:
+                    self.logger.warning("Swagger responded but no activation markers found.")
+            elif not okay:
+                self.logger.warning(f"Swagger endpoint error: {error_msg}")
 
-    except Exception as exc:
-        self.logger.error(f"Activation check failed: {exc}")
-        return False
+            return False
+
+        except Exception as exc:
+            self.logger.error(f"Activation check failed: {exc}")
+            return False
