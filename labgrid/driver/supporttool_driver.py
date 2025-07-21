@@ -40,56 +40,41 @@ class SupportToolDriver:
             else:
                 return True, "", response.text
         except Exception as exc:
-            return False, str(exc), None
+            return False, str(exc), N
+   def check_supporttool_activated(self):
+    """
+    First ensure the server is running.
+    Then check if the SupportTool is activated by:
+    1. Trying `/api/status` for a known activation response.
+    2. Falling back to `/swagger` and checking content.
+    """
+    try:
+        # Step 1: Check if server is running
+        if not self.check_rest_api_running():
+            self.logger.error("Cannot check activation: SupportTool API is not running.")
+            return False
 
-    def check_rest_api_running(self):
-        try:
-            host, port = proxymanager.get_host_and_port(self.supt, default_port=self.supt.port)
-            self._support_tool_url = f"https://{host}:{port}"
-            okay, error_msg, content = self._rest_get(self._support_tool_url, expected_result=True)
-            if not okay or not content:
-                raise Exception(f"SupportToolDriver error: {error_msg}")
-            self.logger.info(f"Support Tool API is up at {self._support_tool_url}")
+        # Step 2: Try /api/status for known activation response
+        status_url = f"{self._support_tool_url}/api/status"
+        okay, error_msg, content = self._rest_get(status_url, expected_result=False)
+        if okay and content and isinstance(content, dict) and content.get("status") == "active":
+            self.logger.info("SupportTool is activated (via /api/status).")
             return True
-        except requests.RequestException as exc:
-            self.logger.error(f"Error checking support tool API: {exc}")
-            return False
-        except Exception as exc:
-            self.logger.error(f"Unexpected error: {exc}")
-            return False
 
-    def check_supporttool_activated(self):
-        """
-        Check if the SupportTool is activated by:
-        1. Trying `/api/status` for a known activation response.
-        2. Falling back to `/swagger` and checking content.
-        """
-        try:
-            if not self._support_tool_url:
-                host, port = proxymanager.get_host_and_port(self.supt, default_port=self.supt.port)
-                self._support_tool_url = f"https://{host}:{port}"
-
-            # --- Option 1: Try known status endpoint ---
-            status_url = f"{self._support_tool_url}/api/status"
-            okay, error_msg, content = self._rest_get(status_url, expected_result=False)
-            if okay and content and isinstance(content, dict) and content.get("status") == "active":
-                self.logger.info("SupportTool is activated (via /api/status).")
+        # Step 3: Fallback to /swagger endpoint
+        swagger_url = f"{self._support_tool_url}/swagger"
+        okay, error_msg, content = self._rest_get(swagger_url, expected_result=False)
+        if okay and isinstance(content, str):
+            if "Swagger UI" in content or "<title>Swagger UI" in content:
+                self.logger.info("SupportTool is activated (via Swagger UI detection).")
                 return True
+            else:
+                self.logger.warning("Swagger responded, but activation markers not found.")
+        elif not okay:
+            self.logger.warning(f"Swagger endpoint error: {error_msg}")
 
-            # --- Option 2: Fallback to Swagger UI ---
-            swagger_url = f"{self._support_tool_url}/swagger"
-            okay, error_msg, content = self._rest_get(swagger_url, expected_result=False)
-            if okay and isinstance(content, str):
-                if "Swagger UI" in content or "<title>Swagger UI" in content:
-                    self.logger.info("SupportTool is activated (via Swagger UI detection).")
-                    return True
-                else:
-                    self.logger.warning("Swagger responded, but activation markers not found.")
-            elif not okay:
-                self.logger.warning(f"Swagger endpoint error: {error_msg}")
+        return False
 
-            return False
-
-        except Exception as exc:
-            self.logger.error(f"Activation check failed: {exc}")
-            return False
+    except Exception as exc:
+        self.logger.error(f"Activation check failed: {exc}")
+        return False
